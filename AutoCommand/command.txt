@@ -1,0 +1,34 @@
+Original:
+sudo ./ran_build/build/nr-softmodem -O ../targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band66.fr1.25PRB.usrpx300.conf --rfsim --rfsimulator.prop_delay 20
+sudo ./ran_build/build/nr-uesoftmodem --band 66 -C 2152680000 --CO -400000000 -r 25 --numerology 0 --ssb 48 --rfsim --rfsimulator.prop_delay 20 --rfsimulator.options chanmod -O ../targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_LEO_satellite.conf --time-sync-I 0.2 --ntn-koffset 40 --ntn-ta-common 37.74 --ntn-ta-commondrift -50 --autonomous-ta
+
+
+GPT modification:
+sudo ./ran_build/build/nr-softmodem \
+  -O ../targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band66.fr1.25PRB.usrpx300.conf \
+  --rfsim \
+  --rfsimulator.prop_delay 10 \
+  --rfsimulator.options chanmod
+
+
+sudo ./ran_build/build/nr-uesoftmodem \
+  --band 66 \
+  -C 2152680000 \
+  --CO -400000000 \
+  -r 25 \
+  --numerology 0 \
+  --ssb 48 \
+  --rfsim \
+  --rfsimulator.prop_delay 10 \
+  --rfsimulator.options chanmod \
+  -O ../targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_LEO_satellite.conf \
+  --time-sync-I 0.2 \
+  --ntn-koffset 50 \
+  --ntn-ta-common 38.0 \
+  --ntn-ta-commondrift -50 \
+  --autonomous-ta
+
+
+  docker cp rfsim5g-oai-cu_b:/opt/oai-gnb/ /home/tonic/CCW/openairinterface5g-develop/cmake_targets/ran_build/build_rach_less/
+
+

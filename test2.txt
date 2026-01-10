@@ -1,0 +1,9 @@
+[RLC]   Added srb 1 to UE 54547
+[RLC]   Added srb 2 to UE 54547
+[RLC]   Added drb 1 to UE 54547
+[RLC]   Added DRB to UE 54547
+[GTPU]   [94] Created tunnel for UE ID 54547, teid for incoming: 875b471b, teid for outgoing 61b1baeb to remote IPv4: 192.168.71.150, IPv6 ::
+[NR_MAC]   UE d513: 946.11 Generating RA-less DCI, state 8, CoreSetType 0, RAPID 0
+[NR_MAC]   RACH-less rbSize.rbStart.BWPsize 8.0.48
+[NR_MAC]   DCI type 1 payload: freq_alloc 336 (0,8,48), time_alloc 0, vrb to prb 0, mcs 0 tb_scaling 0 
+[NR_MAC]   DCI params: rnti 0xd513, rnti_type 5, dci_format 0 coreset params: FreqDomainResource 6010000000000ff, start_symbol 0  n_symb 1

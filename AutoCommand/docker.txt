@@ -1,0 +1,87 @@
+docker pull mysql:8.0
+docker pull oaisoftwarealliance/oai-amf:v2.0.0
+docker pull oaisoftwarealliance/oai-smf:v2.0.0
+docker pull oaisoftwarealliance/oai-upf:v2.0.0
+docker pull oaisoftwarealliance/trf-gen-cn5g:focal
+docker pull oaisoftwarealliance/oai-gnb:develop
+docker pull oaisoftwarealliance/oai-nr-ue:develop
+
+
+cd ci-scripts/yaml_files/5g_rfsimulator
+docker compose up -d mysql oai-amf oai-smf oai-upf oai-ext-dn
+
+docker compose ps -a
+
+ifconfig
+
+docker-compose up -d oai-gnb
+
+docker-compose up -d oai-cu
+
+docker-compose up -d oai-du
+
+
+docker compose up oai-cu oai-du1 oai-du2 oai-nr-ue
+
+docker compose up oai-cu0 oai-du0 oai-nr-ue0
+ping -I oaitun_ue1 google.com
+
+
+docker logs rfsim5g-oai-amf
+
+
+
+
+docker-compose up oai-cu 
+
+
+docker-compose up oai-du1 
+docker-compose up oai-du2 
+
+docker-compose up oai-nr-ue
+
+
+
+
+## Check for UE
+
+#Uplink
+docker exec -it rfsim5g-oai-nr-ue /bin/bash
+ping -I oaitun_ue1 -i 0.00001 -c 350000 192.168.72.135
+ping -I eth0 -i 0.00001 -c 350000 192.168.72.135
+ping -I eth0 -i 0.00001 -c 200000 192.168.71.150
+
+
+#Downlink
+docker exec -it rfsim5g-oai-nr-ue /bin/bash
+iperf -B 12.1.1.2 -u -i 1 -s
+iperf -B 192.168.71.150 -u -i 1 -s
+
+## Generate traffic from ext-dn container
+docker exec -it rfsim5g-oai-ext-dn /bin/bash
+iperf -c 12.1.1.2 -u -i 1 -t 20 -b 500K
+
+gnome-terminal --window -x bash -c "docker-compose up oai-cu oai-du1 oai-du2 oai-nr-ue;exec bash" --geometry=740x210+500+500
+gnome-terminal --window -x bash -c "docker-compose up oai-cu oai-du1 oai-du2 oai-nr-ue;exec bash" --geometry=740x210+500+500
+gnome-terminal --window -x bash -c "docker-compose up oai-cu oai-du1 oai-du2 oai-nr-ue;exec bash" --geometry=740x210+500+500
+
+
+docker compose down --volumes --remove-orphans
+docker system prune -a --volumes
+
+#Uplink by iperf
+
+docker exec -it rfsim5g-oai-nr-ue /bin/bash
+iperf -c 192.168.72.135  -u -i 1 -t 20 -b 500K
+iperf -c 192.168.72.135 -u -i 1 -t 20 -b 500K
+iperf -c 192.168.71.150 -u -i 1 -t 50 -b 500K -B oaitun_ue1
+
+
+docker exec -it rfsim5g-oai-ext-dn /bin/bash
+iperf -B 192.168.72.135  -u -i 1 -s
+
+docker exec -it rfsim5g-oai-cu /bin/bash
+iperf -B 192.168.71.150  -u -i 1 -s
+
+
+ps aux | grep OAI_rach_less_command_docker.sh

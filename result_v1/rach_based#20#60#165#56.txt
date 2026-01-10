@@ -1,0 +1,17 @@
+192.168.72.135 : xmt/rcv/%loss = 165/103/37%, min/avg/max = 33.5/46.5/59.8
+
+       1 targets
+       1 alive
+       0 unreachable
+       0 unknown addresses
+
+      62 timeouts (waiting for response)
+     165 ICMP Echos sent
+     164 ICMP Echo Replies received
+       0 other ICMP received
+
+ 33.5 ms (min round trip time)
+ 46.5 ms (avg round trip time)
+ 59.8 ms (max round trip time)
+        9.902 sec (elapsed real time)
+

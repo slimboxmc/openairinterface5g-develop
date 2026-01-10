@@ -1,0 +1,57 @@
+sudo ./ran_build/build/nr-softmodem -O ../targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band66.fr1.25PRB.usrpx300.conf --rfsim --rfsimulator.prop_delay 20
+
+sudo ./ran_build/build/nr-uesoftmodem --band 66 -C 2152680000 --CO -400000000 -r 25 --numerology 0 --ssb 48 --rfsim --rfsimulator.prop_delay 20 --rfsimulator.options chanmod -O ../targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_LEO_satellite.conf --time-sync-I 0.2 --ntn-koffset 40 --ntn-ta-common 37.74 --ntn-ta-commondrift -50 --autonomous-ta
+
+
+
+sudo ./ran_build/build/nr-uesoftmodem --band 66 -C 2152680000 --CO -400000000 -r 25 --numerology 0 --ssb 48 --rfsim --rfsimulator.prop_delay 20 --rfsimulator.options chanmod -O ../targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_LEO_satellite.conf --time-sync-I 0.2 --ntn-koffset 40 --ntn-ta-common 37.74 --ntn-ta-commondrift -50 --autonomous-ta
+
+
+
+###GEO
+cd cmake_targets
+sudo ./ran_build/build/nr-softmodem -O ../targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band66.fr1.25PRB.usrpx300.conf --rfsim --rfsimulator.prop_delay 238.74
+
+cd cmake_targets
+sudo ./ran_build/build/nr-uesoftmodem --band 66 -C 2152680000 --CO -400000000 -r 25 --numerology 0 --ssb 48 --rfsim --rfsimulator.prop_delay 238.74 --ntn-koffset 478 --ntn-ta-common 477.48
+
+
+##test
+
+sudo ./ran_build/build/nr-uesoftmodem --band 66 -C 2152680000 --CO -400000000 -r 25 --numerology 0 --ssb 48 --rfsim --rfsimulator.prop_delay 20 --rfsimulator.options chanmod -O ../targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_LEO_satellite.conf --time-sync-I 0.2 --ntn-koffset 40 --ntn-ta-common 37.74 --ntn-ta-commondrift -50 --autonomous-ta
+sudo ./ran_build/build/nr-uesoftmodem --band 66 -C 2152680000 --CO -400000000 -r 25 --numerology 0 --ssb 48 --rfsim --rfsimulator.prop_delay 20 --rfsimulator.options chanmod -O ../targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_LEO_satellite.conf --time-sync-I 0.2 --ntn-koffset 40 --ntn-ta-common 40.33 --ntn-ta-commondrift 33 --autonomous-ta
+
+sudo ./nr-uesoftmodem --band 66 -C 3450720000  -r 106 --numerology 1 --ssb 516 --rfsim --rfsimulator.prop_delay 20 --ntn-koffset 40 --ntn-ta-common 40
+
+
+##LEO delay
+
+sudo ./ran_build/build/nr-softmodem -O ../targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band66.fr1.25PRB.usrpx300.conf --rfsim --rfsimulator.prop_delay 20
+
+sudo ./ran_build/build/nr-uesoftmodem --band 66 -C 2152680000 --CO -400000000 -r 25 --numerology 0 --ssb 48 --rfsim --rfsimulator.prop_delay 20 --ntn-koffset 40 --ntn-ta-common 40
+
+
+##handover
+sudo ./nr-softmodem -O ../../../targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-cu.sa.f1.conf --telnetsrv --telnetsrv.shrmod ci
+
+sudo ./nr-softmodem --rfsim -O ../../../targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-du.sa.band78.106prb.rfsim.pci0.conf --rfsimulator.serveraddr 127.0.0.1
+
+sudo ./nr-uesoftmodem -C 3450720000 -r 106 --numerology 1 --ssb 516 --uicc0.imsi 001010000000001 --rfsim --rfsimulator.serveraddr server
+
+sudo ./nr-softmodem --rfsim -O ../../../targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-du.sa.band78.106prb.rfsim.pci1.conf --rfsimulator.serveraddr 127.0.0.1
+
+echo ci trigger_f1_ho | nc 127.0.0.1 9090 && echo
+
+
+
+##handover + LEO delay
+
+sudo ./nr-softmodem -O ../../../targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-cu.sa.f1.conf --telnetsrv --telnetsrv.shrmod ci
+
+sudo ./nr-softmodem --rfsim -O ../../../targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-du.sa.band78.106prb.rfsim.pci0.conf --rfsimulator.serveraddr 127.0.0.1  --rfsimulator.prop_delay 20
+
+sudo ./nr-uesoftmodem -C 3450720000 -r 106 --numerology 1 --ssb 516 --uicc0.imsi 001010000000001 --rfsim --rfsimulator.serveraddr server --rfsimulator.prop_delay 20 --ntn-koffset 40 --ntn-ta-common 40
+
+sudo ./nr-softmodem --rfsim -O ../../../targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-du.sa.band78.106prb.rfsim.pci1.conf --rfsimulator.serveraddr 127.0.0.1 --rfsimulator.prop_delay 20
+
+

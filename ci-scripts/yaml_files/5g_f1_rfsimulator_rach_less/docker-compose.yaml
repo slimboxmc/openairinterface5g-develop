@@ -1,0 +1,373 @@
+networks:
+    public_net:
+        driver: bridge
+        driver_opts:
+            com.docker.network.bridge.name: rfsim5g-public
+        ipam:
+            config:
+            -   subnet: 192.168.71.128/26
+        name: rfsim5g-oai-public-net
+    traffic_net:
+        driver: bridge
+        driver_opts:
+            com.docker.network.bridge.name: rfsim5g-traffic
+        ipam:
+            config:
+            -   subnet: 192.168.72.128/26
+        name: rfsim5g-oai-traffic-net
+services:
+    mysql:
+        container_name: rfsim5g-mysql
+        environment:
+        - TZ=Europe/Paris
+        - MYSQL_DATABASE=oai_db
+        - MYSQL_USER=test
+        - MYSQL_PASSWORD=test
+        - MYSQL_ROOT_PASSWORD=linux
+        healthcheck:
+            interval: 10s
+            retries: 30
+            test: /bin/bash -c "/tmp/mysql-healthcheck.sh"
+            timeout: 5s
+        image: mysql:8.0
+        networks:
+            public_net:
+                ipv4_address: 192.168.71.131
+        volumes:
+        - ../5g_rfsimulator/oai_db.sql:/docker-entrypoint-initdb.d/oai_db.sql
+        - ../5g_rfsimulator/mysql-healthcheck.sh:/tmp/mysql-healthcheck.sh
+    oai-amf:
+        container_name: rfsim5g-oai-amf
+        depends_on:
+        - mysql
+        environment:
+        - TZ=Europe/paris
+        image: oaisoftwarealliance/oai-amf:v2.0.0
+        networks:
+            public_net:
+                ipv4_address: 192.168.71.132
+        volumes:
+        - ../5g_rfsimulator_e1/mini_nonrf_config_3slices.yaml:/openair-amf/etc/config.yaml
+    oai-cu:
+        cap_add:
+        - SYS_ADMIN
+        - NET_ADMIN
+        cap_drop:
+        - ALL
+        container_name: rfsim5g-oai-cu
+        depends_on:
+        - oai-ext-dn
+        environment:
+            ASAN_OPTIONS: detect_leaks=0
+            USE_ADDITIONAL_OPTIONS: --telnetsrv --telnetsrv.shrmod ci
+        healthcheck:
+            interval: 10s
+            retries: 5
+            test: /bin/bash -c "pgrep nr-softmodem"
+            timeout: 5s
+        image: ${REGISTRY:-oaisoftwarealliance}/${GNB_IMG:-oai-gnb}:${TAG:-2024.w51}
+        networks:
+            public_net:
+                ipv4_address: 192.168.71.150
+        privileged: true
+        volumes:
+        - ../../conf_rach_less/gnb-cu.sa.f1.conf:/opt/oai-gnb/etc/gnb.conf
+        - ../../../cmake_targets/ran_build/build_rach_less/entrypoint.sh:/opt/oai-gnb/bin/entrypoint.sh
+        - ../../../cmake_targets/ran_build/build_rach_less/oai-gnb/bin/nr-softmodem:/opt/oai-gnb/bin/nr-softmodem
+        - ../../../cmake_targets/ran_build/build_rach_less/oai-gnb/openairinterface5g-develop/:/opt/oai-gnb/openairinterface5g-develop/
+    oai-cu0:
+        cap_add:
+        - SYS_ADMIN
+        - NET_ADMIN
+        cap_drop:
+        - ALL
+        container_name: rfsim5g-oai-cu0
+        depends_on:
+        - oai-ext-dn
+        environment:
+            ASAN_OPTIONS: detect_leaks=0:detect_odr_violation=0
+            USE_ADDITIONAL_OPTIONS: --rfsimulator.options chanmod --telnetsrv --telnetsrv.listenaddr
+                192.168.71.150 --telnetsrv.shrmod ci
+        healthcheck:
+            interval: 10s
+            retries: 5
+            test: /bin/bash -c "pgrep nr-softmodem"
+            timeout: 5s
+        image: ${REGISTRY:-oaisoftwarealliance}/${GNB_IMG:-oai-gnb}:${TAG:-2024.w51}
+        networks:
+            public_net:
+                ipv4_address: 192.168.71.150
+        privileged: true
+        volumes:
+        - ../../conf_files/gnb-cu.sa.band78.106prb.conf:/opt/oai-gnb/etc/gnb.conf
+    oai-cu_build:
+        cap_add:
+        - SYS_ADMIN
+        - NET_ADMIN
+        cap_drop:
+        - ALL
+        container_name: rfsim5g-oai-cu_b
+        depends_on:
+        - oai-ext-dn
+        environment:
+            ASAN_OPTIONS: detect_leaks=0
+            USE_ADDITIONAL_OPTIONS: --log_config.global_log_options level,nocolor,time
+                --rfsimulator.options chanmod --telnetsrv --telnetsrv.listenaddr 192.168.71.150
+                --telnetsrv.shrmod ci
+        healthcheck:
+            interval: 10s
+            retries: 5
+            test: /bin/bash -c "pgrep nr-softmodem"
+            timeout: 5s
+        image: ${REGISTRY:-oaisoftwarealliance}/${GNB_IMG:-oai-gnb}:${TAG:-2024.w51}
+        networks:
+            public_net:
+                ipv4_address: 192.168.71.180
+        privileged: true
+        volumes:
+        - ../../../targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb-cu.sa.f1.conf:/opt/oai-gnb/etc/gnb.conf
+        - ../../../ci-scripts/conf_rach_less/entrypoint_build.sh:/opt/oai-gnb/bin/entrypoint.sh
+    oai-du0:
+        cap_drop:
+        - ALL
+        container_name: rfsim5g-oai-du0
+        depends_on:
+        - oai-cu0
+        environment:
+            ASAN_OPTIONS: detect_leaks=0:detect_odr_violation=0
+            USE_ADDITIONAL_OPTIONS: --rfsim --rfsimulator.options chanmod --telnetsrv
+                --telnetsrv.listenaddr 192.168.71.171 --telnetsrv.shrmod ci
+        healthcheck:
+            interval: 10s
+            retries: 5
+            test: /bin/bash -c "pgrep nr-softmodem"
+            timeout: 5s
+        image: ${REGISTRY:-oaisoftwarealliance}/${GNB_IMG:-oai-gnb}:${TAG:-2024.w51}
+        networks:
+            public_net:
+                ipv4_address: 192.168.71.171
+        volumes:
+        - ../../conf_files/gnb-du.sa.band78.106prb.rfsim.conf:/opt/oai-gnb/etc/gnb.conf
+    oai-du1:
+        cap_add:
+        - SYS_ADMIN
+        - NET_ADMIN
+        cap_drop:
+        - ALL
+        container_name: rfsim5g-oai-du1
+        depends_on:
+        - oai-cu
+        environment:
+            ASAN_OPTIONS: detect_leaks=0
+            USE_ADDITIONAL_OPTIONS: --rfsim --rfsimulator.serveraddr 192.168.71.181                                         --rfsimulator.prop_delay
+                15
+        healthcheck:
+            interval: 10s
+            retries: 5
+            test: /bin/bash -c "pgrep nr-softmodem"
+            timeout: 5s
+        image: ${REGISTRY:-oaisoftwarealliance}/${GNB_IMG:-oai-gnb}:${TAG:-2024.w51}
+        networks:
+            public_net:
+                ipv4_address: 192.168.71.171
+        privileged: true
+        volumes:
+        - ../../conf_rach_less/gnb-du.sa.band78.106prb.rfsim.pci0.conf:/opt/oai-gnb/etc/gnb.conf
+        - ../../../cmake_targets/ran_build/build_rach_less/entrypoint.sh:/opt/oai-gnb/bin/entrypoint.sh
+        - ../../../cmake_targets/ran_build/build_rach_less/oai-gnb/bin/nr-softmodem:/opt/oai-gnb/bin/nr-softmodem
+        - ../../../cmake_targets/ran_build/build_rach_less/oai-gnb/openairinterface5g-develop/:/opt/oai-gnb/openairinterface5g-develop/
+    oai-du2:
+        cap_add:
+        - SYS_ADMIN
+        - NET_ADMIN
+        cap_drop:
+        - ALL
+        container_name: rfsim5g-oai-du2
+        depends_on:
+            oai-cu:
+                condition: service_healthy
+        environment:
+            ASAN_OPTIONS: detect_leaks=0
+            USE_ADDITIONAL_OPTIONS: --rfsim --rfsimulator.serveraddr 192.168.71.181                                          --rfsimulator.prop_delay
+                15
+        healthcheck:
+            interval: 10s
+            retries: 5
+            test: /bin/bash -c "pgrep nr-softmodem"
+            timeout: 5s
+        image: ${REGISTRY:-oaisoftwarealliance}/${GNB_IMG:-oai-gnb}:${TAG:-2024.w51}
+        networks:
+            public_net:
+                ipv4_address: 192.168.71.172
+        privileged: true
+        volumes:
+        - ../../conf_rach_less/gnb-du.sa.band78.106prb.rfsim.pci1.conf:/opt/oai-gnb/etc/gnb.conf
+        - ../../../cmake_targets/ran_build/build_rach_less/entrypoint.sh:/opt/oai-gnb/bin/entrypoint.sh
+        - ../../../cmake_targets/ran_build/build_rach_less/oai-gnb/bin/nr-softmodem:/opt/oai-gnb/bin/nr-softmodem
+        - ../../../cmake_targets/ran_build/build_rach_less/oai-gnb/openairinterface5g-develop/:/opt/oai-gnb/openairinterface5g-develop/
+    oai-ext-dn:
+        container_name: rfsim5g-oai-ext-dn
+        depends_on:
+        - oai-upf
+        entrypoint: /bin/bash -c \ "iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE;"\
+            "ip route add 12.1.1.0/24 via 192.168.72.134 dev eth0; sleep infinity"
+        healthcheck:
+            interval: 10s
+            retries: 5
+            test: /bin/bash -c "ping -c 2 192.168.72.134"
+            timeout: 5s
+        image: oaisoftwarealliance/trf-gen-cn5g:focal
+        networks:
+            traffic_net:
+                ipv4_address: 192.168.72.135
+        privileged: true
+    oai-nr-ue:
+        cap_add:
+        - NET_ADMIN
+        - NET_RAW
+        cap_drop:
+        - ALL
+        container_name: rfsim5g-oai-nr-ue
+        depends_on:
+        - oai-du1
+        devices:
+        - /dev/net/tun:/dev/net/tun
+        environment:
+            USE_ADDITIONAL_OPTIONS: --rfsim -r 106 --numerology 1 -C 3450720000 --ssb                      516
+                --uicc0.imsi 208990100001100 --rfsimulator.serveraddr server --rfsimulator.prop_delay                      15
+                --ntn-koffset 30 --ntn-ta-common 30
+        healthcheck:
+            interval: 10s
+            retries: 5
+            test: /bin/bash -c "pgrep nr-uesoftmodem"
+            timeout: 5s
+        image: ${REGISTRY:-oaisoftwarealliance}/${NRUE_IMG:-oai-nr-ue}:${TAG:-2024.w51}
+        networks:
+            public_net:
+                ipv4_address: 192.168.71.181
+        privileged: true
+        volumes:
+        - ../../conf_files/nrue.uicc.conf:/opt/oai-nr-ue/etc/nr-ue.conf
+        - ../../conf_files/rfsim_channel_ci.conf:/opt/oai-nr-ue/etc/rfsim_channel_ci.conf
+        - ../../../cmake_targets/ran_build/build_nr_ue_rach_less/entrypoint.sh:/opt/oai-nr-ue/bin/entrypoint.sh
+        - ../../../AutoCommand/example.txt:/opt/oai-nr-ue/bin/para.txt
+        - ../../../cmake_targets/ran_build/build_rach_less/oai-gnb/bin/nr-uesoftmodem:/opt/oai-nr-ue/bin/nr-uesoftmodem
+        - ../../../cmake_targets/ran_build/build_rach_less/oai-gnb/openairinterface5g-develop/:/opt/oai-gnb/openairinterface5g-develop/
+    oai-nr-ue-ping:
+        cap_add:
+        - NET_ADMIN
+        - NET_RAW
+        cap_drop:
+        - ALL
+        container_name: rfsim5g-oai-nr-ue-ping
+        depends_on:
+            oai-nr-ue:
+                condition: service_healthy
+        devices:
+        - /dev/net/tun:/dev/net/tun
+        environment:
+            USE_ADDITIONAL_OPTIONS: --sa --rfsim -r 106 --numerology 1 -C 3450720000
+                --uicc0.imsi 208990100001100 --rfsimulator.serveraddr server
+        healthcheck:
+            interval: 10s
+            retries: 5
+            test: /bin/bash -c "pgrep nr-uesoftmodem"
+            timeout: 5s
+        image: oaisoftwarealliance/oai-nr-ue:develop
+        networks:
+            public_net:
+                ipv4_address: 192.168.71.182
+        privileged: true
+        volumes:
+        - ../../conf_files/nrue.uicc.conf:/opt/oai-nr-ue/etc/nr-ue.conf
+        - ../../conf_files/rfsim_channel_ci.conf:/opt/oai-nr-ue/etc/rfsim_channel_ci.conf
+        - ../../../cmake_targets/ran_build/build_nr_ue_ping/:/opt/oai-nr-ue/bin/
+    oai-nr-ue0:
+        cap_add:
+        - NET_ADMIN
+        - NET_RAW
+        cap_drop:
+        - ALL
+        container_name: rfsim5g-oai-nr-ue0
+        depends_on:
+        - oai-du0
+        devices:
+        - /dev/net/tun:/dev/net/tun
+        environment:
+            ASAN_OPTIONS: detect_odr_violation=0
+            USE_ADDITIONAL_OPTIONS: --rfsim -r 106 --numerology 1 -C 3619200000 --uicc0.imsi
+                208990100001100 --rfsimulator.serveraddr 192.168.71.171 --rfsimulator.options
+                chanmod --telnetsrv --telnetsrv.shrmod ciUE --telnetsrv.listenaddr
+                192.168.71.181 --telnetsrv.listenport 8091
+        healthcheck:
+            interval: 10s
+            retries: 5
+            test: /bin/bash -c "pgrep nr-uesoftmodem"
+            timeout: 5s
+        image: ${REGISTRY:-oaisoftwarealliance}/${NRUE_IMG:-oai-nr-ue}:${TAG:-2024.w51}
+        networks:
+            public_net:
+                ipv4_address: 192.168.71.181
+        volumes:
+        - ../../conf_files/nrue.uicc.conf:/opt/oai-nr-ue/etc/nr-ue.conf
+    oai-nr-ue2:
+        cap_add:
+        - NET_ADMIN
+        - NET_RAW
+        cap_drop:
+        - ALL
+        container_name: rfsim5g-oai-nr-ue2
+        depends_on:
+        - oai-du1
+        devices:
+        - /dev/net/tun:/dev/net/tun
+        environment:
+            ASAN_OPTIONS: detect_odr_violation=0
+            USE_ADDITIONAL_OPTIONS: --rfsim -r 106 --numerology 1 -C 3450720000 --ssb
+                516 --rfsimulator.prop_delay 40 --ntn-koffset 80 --ntn-ta-common 80
+                --uicc0.imsi 208990100001100 --rfsimulator.serveraddr server
+        healthcheck:
+            interval: 10s
+            retries: 5
+            test: /bin/bash -c "pgrep nr-uesoftmodem"
+            timeout: 5s
+        image: ${REGISTRY:-oaisoftwarealliance}/${NRUE_IMG:-oai-nr-ue}:${TAG:-2024.w51}
+        networks:
+            public_net:
+                ipv4_address: 192.168.71.181
+        volumes:
+        - ../../conf_files/nrue.uicc.conf:/opt/oai-nr-ue/etc/nr-ue.conf
+        - ../../../cmake_targets/ran_build/build_rach_less/oai-gnb/bin/nr-uesoftmodem:/opt/oai-nr-ue/bin/nr-uesoftmodem
+        - ../../../cmake_targets/ran_build/build_rach_less/oai-gnb/openairinterface5g-develop/:/opt/oai-gnb/openairinterface5g-develop/
+    oai-smf:
+        container_name: rfsim5g-oai-smf
+        depends_on:
+        - oai-amf
+        environment:
+        - TZ=Europe/Paris
+        image: oaisoftwarealliance/oai-smf:v2.0.0
+        networks:
+            public_net:
+                ipv4_address: 192.168.71.133
+        volumes:
+        - ../5g_rfsimulator_e1/mini_nonrf_config_3slices.yaml:/openair-smf/etc/config.yaml
+    oai-upf:
+        cap_add:
+        - NET_ADMIN
+        - SYS_ADMIN
+        cap_drop:
+        - ALL
+        container_name: rfsim5g-oai-upf
+        depends_on:
+        - oai-smf
+        environment:
+        - TZ=Europe/Paris
+        image: oaisoftwarealliance/oai-upf:v2.0.0
+        networks:
+            public_net:
+                ipv4_address: 192.168.71.134
+            traffic_net:
+                ipv4_address: 192.168.72.134
+        privileged: true
+        volumes:
+        - ../5g_rfsimulator_e1/mini_nonrf_config_3slices.yaml:/openair-upf/etc/config.yaml
